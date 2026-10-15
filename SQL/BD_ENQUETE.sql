@@ -1,0 +1,151 @@
+CREATE DATABASE IF NOT EXISTS BD_ENQUETE;
+USE BD_ENQUETE;
+
+CREATE TABLE IF NOT EXISTS USUARIOS(
+	USU_CODIGO INT AUTO_INCREMENT,
+    USU_DATA_CADASTRO DATE NOT NULL,
+    USU_LOGIN VARCHAR(67) NOT NULL UNIQUE, -- LOGIN É UNICO
+    USU_AREA_ATUACAO VARCHAR(50),
+    USU_PROFISSAO VARCHAR(50),
+    USU_AREA_FORMACAO VARCHAR(50),
+    USU_DATANASC DATE NOT NULL,
+    USU_ESTADO_CIVIL ENUM('Solteiro', 'Casado', 'Divorciado', 'Viúvo') NOT NULL,
+    USU_ESTADO VARCHAR(2) NOT NULL,
+    USU_ESCOLARIDADE ENUM('Fundamental Completo', 'Médio Completo', 'Superior') NOT NULL,
+    USU_EMAIL VARCHAR(100) NOT NULL UNIQUE,
+    USU_SENHA VARCHAR(255) NOT NULL,
+    USU_NOME VARCHAR(100) NOT NULL,
+    PRIMARY KEY(USU_CODIGO)
+);
+
+CREATE TABLE IF NOT EXISTS ENQUETE(
+	ENQ_CODIGO INT AUTO_INCREMENT,
+    ENQ_DATA_INCIAL DATE NOT NULL,
+    ENQ_DATA_FINAL DATE,
+    ENQ_DESCRICAO VARCHAR(1440),
+    ENQ_NOME VARCHAR(50) NOT NULL UNIQUE,
+    PRIMARY KEY(ENQ_CODIGO)
+);
+
+CREATE TABLE IF NOT EXISTS PERGUNTAS(
+	PER_CODIGO INT AUTO_INCREMENT,
+    PER_DESCRICAO VARCHAR(500) NOT NULL,
+    FK_ENQ_CODIGO INT NOT NULL,
+    PRIMARY KEY(PER_CODIGO),
+    FOREIGN KEY(FK_ENQ_CODIGO) REFERENCES ENQUETE(ENQ_CODIGO) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS RESPOSTAS(
+	RES_CODIGO INT AUTO_INCREMENT,
+    RES_DESCRICAO VARCHAR(500) NOT NULL,
+    RES_CERTA VARCHAR(1) NOT NULL,
+    FK_PER_CODIGO INT NOT NULL,
+    PRIMARY KEY(RES_CODIGO),
+    FOREIGN KEY(FK_PER_CODIGO) REFERENCES PERGUNTAS(PER_CODIGO) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS USUARIO_RESPONDE_ENQUETE(
+	URE_CODIGO INT AUTO_INCREMENT,
+    URE_DATA DATE NOT NULL,
+    FK_USU_CODIGO INT NOT NULL,
+    FK_ENQ_CODIGO INT NOT NULL,
+    PRIMARY KEY(URE_CODIGO),
+    FOREIGN KEY(FK_USU_CODIGO) REFERENCES USUARIOS(USU_CODIGO) ON DELETE CASCADE,
+    FOREIGN KEY(FK_ENQ_CODIGO) REFERENCES ENQUETE(ENQ_CODIGO) ON DELETE CASCADE
+);
+
+-- ÍNDICES DE CONSULTA (SELECT)
+-- criar índices em campos com alta chance de serem buscados em um select
+-- UNIQUE, PRIMARY KEY já tem índices automaticamente
+CREATE INDEX IDX_USUARIO_AREA_ATUACAO ON USUARIOS(USU_AREA_ATUACAO);
+CREATE INDEX IDX_USUARIO_AREA_FORMACAO ON USUARIOS(USU_AREA_FORMACAO);
+CREATE INDEX IDX_USUARIO_ESCOLARIDADE ON USUARIOS(USU_ESCOLARIDADE);
+CREATE INDEX IDX_URE_USUARIO_ENQUETE ON USUARIO_RESPONDE_ENQUETE(FK_USU_CODIGO, FK_ENQ_CODIGO);
+
+-- DCL - DATA CONTROL LANGUAGE
+-- 1. CRIAR USUÁRIOS
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin@123';
+CREATE USER 'isabela'@'localhost' IDENTIFIED BY 'senhaForte@123';
+
+-- 2. VERIFICAR SE OS USUÁRIOS FORAM CRIADOS
+SELECT USER, HOST
+FROM MYSQL.USER;
+
+-- 3. CONCEDER PERMISSÕES PARA OS USUÁRIOS
+-- DAR TODOS OS PRIVILÉGIOS EM TODAS AS TABELAS PARA O ADMIN
+GRANT ALL PRIVILEGES ON BD_ENQUETE.* TO 'admin'@'localhost';
+
+-- LIBERAR APENAS INSERT E SELECT PARA O SEU USUÁRIO
+GRANT INSERT ON BD_ENQUETE.* TO 'isabela'@'localhost';
+GRANT SELECT ON BD_ENQUETE.* TO 'isabela'@'localhost';
+GRANT UPDATE ON BD_ENQUETE.RESPOSTAS TO 'isabela'@'localhost';
+
+-- REVOGAR UMA PERMISSÃO
+REVOKE UPDATE ON BD_ENQUETE.RESPOSTAS FROM 'isabela'@'localhost';
+
+INSERT INTO USUARIOS(
+    USU_DATA_CADASTRO,
+    USU_LOGIN,
+    USU_DATANASC,
+    USU_ESTADO_CIVIL,
+    USU_ESTADO,
+    USU_ESCOLARIDADE, 
+    USU_EMAIL, 
+    USU_SENHA ,
+    USU_NOME
+)
+	VALUES ('2026-10-15', 'joao.silva', '1995-08-25', 'Solteiro', 'SP', 'Superior', 'joao.silva@email.com', 'SenhaSegura123', 'João da Silva'),
+			('2026-10-15', 'lucas.silva', '1995-04-12', 'Solteiro', 'SP', 'Superior', 'lucas.silva@email.com', 'Senha@123', 'Lucas Silva'),
+			('2026-10-15', 'mari.santos', '1988-11-23', 'Casado', 'RJ', 'Fundamental Completo', 'mariana.santos@email.com', 'Mari#2026', 'Mariana Santos'),
+			('2026-10-15', 'carlos.edu', '2001-07-05', 'Solteiro', 'MG', 'Médio Completo', 'carlos.eduardo@email.com', 'Cadu!9988', 'Carlos Eduardo'),
+			('2026-10-15', 'ana.oliveira', '1992-02-28', 'Divorciado', 'PR', 'Superior', 'ana.oliveira@email.com', 'Ana@Secure', 'Ana Oliveira');
+            
+SELECT * FROM USUARIOS;
+INSERT INTO ENQUETE(
+    ENQ_DATA_INCIAL,
+    ENQ_NOME
+)
+	VALUES('2026-02-01', 'Satisfação do Cliente 2026'),
+			('2026-01-15', 'Clima Organizacional'),
+			('2026-11-01', 'Feedback do Novo Produto'),
+			('2026-12-10', 'Escolha da Festa de Fim de Ano');
+            
+SELECT * FROM ENQUETE;
+
+INSERT INTO PERGUNTAS(
+	PER_DESCRICAO,
+    FK_ENQ_CODIGO
+)
+	VALUES ('Como você avalia o nosso atendimento geral?', 1),
+			('Qual é o seu nível de satisfação com o ambiente de trabalho?', 2),
+			('O que você achou do design da nossa nova embalagem?', 3),
+			('Qual sugestão de local você prefere para o evento de encerramento?', 4),
+			('Você recomendaria nossos serviços para um amigo ou familiar?', 4);
+            
+SELECT * FROM PERGUNTAS;
+
+INSERT INTO RESPOSTAS(
+	RES_DESCRICAO,
+	RES_CERTA,
+    FK_PER_CODIGO
+)
+    VALUES ('Excelente', 'N', 21),
+			('Bom', 'N', 23),
+			('Regular', 'N', 22),
+			('Ruim', 'N', 25),
+			('Não', 'N', 23);
+
+SELECT * FROM RESPOSTAS;
+
+INSERT INTO USUARIO_RESPONDE_ENQUETE(
+	 URE_DATA,
+    FK_USU_CODIGO,
+    FK_ENQ_CODIGO
+)
+	VALUES('2026-11-10', 5, 2),
+			('2026-11-10', 3, 1),
+            ('2026-11-10', 4, 3),
+            ('2026-11-10', 2, 3),
+            ('2026-11-10', 1, 4);
+    
+SELECT * FROM USUARIO_RESPONDE_ENQUETE;
